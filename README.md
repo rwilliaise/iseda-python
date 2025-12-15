@@ -1,6 +1,6 @@
 # ISEDA in Python
 This is an implementation of the inertial symmetry edge detection algorithm from
-the Image Processing of Illuminated Ellipsoid paper [^1] in Python/numpy.
+the Image Processing of Illuminated Ellipsoid paper[^1] in Python/numpy.
 
 ## Usage
 You need Python and `virtualenv`.
