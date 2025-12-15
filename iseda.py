@@ -11,7 +11,7 @@ TEST_IMAGE = Image.open('moon.jpg')
 TEST_IMAGE_WIDTH = TEST_IMAGE.width
 TEST_IMAGE_HEIGHT = TEST_IMAGE.height
 
-MEDIAN_FILTER_SIZE = 5
+MEDIAN_FILTER_SIZE = 20
 
 # turn that into an np array to process
 # since this is a RGB image, the array has the shape of NDArray[width, height, 3]
@@ -75,7 +75,7 @@ print('mass of lumped sum: {}'.format(mass))
 # up and then divides that by the "mass" of the body
 centroid = np.argwhere(image_mat == 1).sum(0) / mass
 
-plt.subplot(2, 2, 1)
+plt.subplot(1, 3, 1)
 plt.plot(*np.flip(centroid), marker='o', color='green')
 plt.imshow(image_mat, cmap='gray')
 plt.title('Calculated centroid')
@@ -106,7 +106,7 @@ wmin = wmin / np.linalg.norm(wmin)
 estimated_moon_radius = 2 * np.sqrt(Lmax/mass)
 estimated_minor_axis = 2 * np.sqrt(Lmin/mass)
 
-plt.subplot(2, 2, 2)
+plt.subplot(1, 3, 2)
 plt.arrow(*np.flip(centroid - wmax * estimated_minor_axis), *np.flip(2 * wmax * estimated_minor_axis), color='red')
 plt.arrow(*np.flip(centroid - wmin * estimated_moon_radius), *np.flip(2 * wmin * estimated_moon_radius), color='blue')
 plt.plot(*np.flip(centroid), marker='o', color='green')
@@ -116,14 +116,10 @@ plt.title('Calculated axes of symmetry')
 print('Lmax: {}\nLmin: {}'.format(Lmax, Lmin))
 print('Estimated moon radius: {} pixels'.format(estimated_moon_radius))
 
-wmax_slope = wmax[0] / wmax[1] # rise over run (y/x)
-y_intercept = centroid[0] - centroid[1] * wmax_slope
-print('y_intercept: {}'.format(y_intercept))
-
 # offset between each line to query
 offset = wmin * estimated_moon_radius / 11
 
-plt.subplot(2, 2, 3)
+plt.subplot(1, 3, 3)
 
 for i in range(-11, 12):
     plt.arrow(*np.flip(centroid - (wmax * estimated_minor_axis) + (i * offset)), *np.flip(2 * wmax * estimated_minor_axis), color='gray')
@@ -133,6 +129,19 @@ plt.imshow(image_mat, cmap='gray')
 plt.title('Lines to query')
 
 plt.show()
+
+
+
+# Step 3: CROSS-CORRELATION
+wmax_slope = wmax[0] / wmax[1] # rise over run (y/x)
+y_intercept = centroid[0] - centroid[1] * wmax_slope
+print('y_intercept: {}'.format(y_intercept))
+
+
+start_point = np.array([y_intercept, 0])
+if y_intercept < 0 or y_intercept > TEST_IMAGE_HEIGHT:
+    x_intercept = centroid[1] - centroid[0] / wmax_slope
+    
 
 mask = np.array([0,0,0,0,1,1,1,1])
 
