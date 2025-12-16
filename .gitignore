@@ -1,3 +1,6 @@
 
 # python venv
-venv
+venv/
+
+# due to licensing issues, sample specimens are not included in the repository
+specimens/

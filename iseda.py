@@ -4,17 +4,24 @@ from PIL import Image
 
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 from scipy import ndimage
 
-# import test image of moon from Fig. 6
-TEST_IMAGE = Image.open('moon.jpg')
+args = sys.argv[1:]
+
+if len(args) < 1:
+    print("Usage: iseda.py [file]")
+    exit(1)
+
+# import image from the command line
+TEST_IMAGE = Image.open(args[0])
 TEST_IMAGE_WIDTH = TEST_IMAGE.width
 TEST_IMAGE_HEIGHT = TEST_IMAGE.height
 
-MEDIAN_FILTER_SIZE = 20
+MEDIAN_FILTER_SIZE = 10
 
 # turn that into an np array to process
-# since this is a RGB image, the array has the shape of NDArray[width, height, 3]
+# since this is a RGB image, the array has the shape of NDArray[height, width, 3]
 image_mat = np.asarray(TEST_IMAGE)
 
 
@@ -39,7 +46,7 @@ plt.imshow(image_mat, cmap='gray')
 plt.title('Grayscale image')
 
 # apply a median filter on the image
-# image_mat = ndimage.median_filter(image_mat, size=MEDIAN_FILTER_SIZE)
+image_mat = ndimage.median_filter(image_mat, size=MEDIAN_FILTER_SIZE)
 
 pixel = np.argmax(image_mat)
 print('Brightest pixel: {}'.format(pixel))
