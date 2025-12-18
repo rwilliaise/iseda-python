@@ -203,6 +203,8 @@ lines = []
 for i in range(-11, 12):
     start = find_edge_point(centroid + (i * offset), wmax)
     end = find_edge_point(centroid + (i * offset), -wmax)
+    if np.allclose(start, end):
+        continue
     lines.append(np.array([start, end]))
 
 # extending the lines plot 
