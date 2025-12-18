@@ -48,7 +48,7 @@ plt.title('Grayscale image')
 # apply a median filter on the image
 image_mat = ndimage.median_filter(image_mat, size=MEDIAN_FILTER_SIZE)
 
-pixel = np.argmax(image_mat)
+pixel = np.unravel_index(np.argmax(image_mat), image_mat.shape)
 print('Brightest pixel: {}'.format(pixel))
 
 # show filtered image
@@ -241,7 +241,8 @@ def sample_bilinear(point):
     # interpolate the value according to the pixel-relative coordinate
     return (1 - py) * (v0 * (1 - px) + v1 * px) + py * (v2 * (1 - px) + v3 * px)
     
-line_samples = []
+mask = np.array([0,0,0,0,1,1,1,1])
+correlations = []
 
 # sample the points along each line
 for line in lines:
@@ -255,20 +256,89 @@ for line in lines:
     # now sample (using bilinear interpolation) using the points on the line
     samples = np.array([sample_bilinear(point) for point in points])
 
-    # add that to the sample list
-    line_samples.append(samples)
+    # and then cross-correlate using the mask
+    correlation = np.correlate(mask, samples)
+
+    correlations.append(correlation)
 
 # sampling the image plot
 plt.subplot(2, 2, 2)
 
-samples = line_samples[int(len(line_samples) / 2)]
-plt.plot(samples, '.-')
-plt.xlabel('Position along middle line')
-plt.ylabel('Sampled pixel value along middle line')
-plt.title('Samples taken from the middle line')
+line_index = int(len(correlations) / 2)
+correlation = correlations[line_index]
+
+plt.plot(np.flip(correlation), 'r.-')
+plt.xlabel('Position along middle line (left-most point to right-most point)')
+plt.ylabel('Value of cross-correlation along middle line')
+plt.title('Mask cross-correlation along middle line')
+
+transition_points = []
+
+for i, correlation in enumerate(correlations):
+    # first find the line associated with this correlation
+    line = lines[i]
+
+    # then get the direction vector underlying it 
+    length = np.linalg.norm(line[1] - line[0])
+    dir = (line[1] - line[0]) / length
+
+    # get the maximum correlation
+    max_correlation = correlation.max()
+
+    if max_correlation == 0:
+        transition_points.append(np.array([]))
+        continue
+    
+    # get the first value which passes the halfway point
+    i0 = np.argmax(correlation > max_correlation / 2)
+    # then, get the value after that which is less than the halfway point
+    i1 = len(correlation) - np.argmax(np.flip(correlation) > max_correlation / 2)
+    
+    # using the point indices, we can get the point in space
+    # TODO: these should be taking into account the size of each sample line
+    p0 = line[1] - dir * i0
+    p1 = line[1] - dir * i1
+    
+    # now add the points to the array
+    points = np.array([p0, p1])
+    transition_points.append(points)   
+
+# points associated with each line plot
+plt.subplot(2, 2, 3)
+
+for i, line in enumerate(lines):
+    color = 'yellow' if i == int(len(lines) / 2) else 'gray'
+    points = transition_points[i]
+
+    plt.arrow(*np.flip(line[0]), *np.flip(line[1] - line[0]), color=color)
+
+    # pass any dead lines
+    if len(points) == 0:
+        continue
+
+    plt.plot(*np.flip(points[0]), marker='o', color=color)
+    plt.plot(*np.flip(points[1]), marker='o', color=color)
+
+plt.imshow(image_mat, cmap='gray')
+plt.title('Calculating the transition points')
+
+# Lay the found points over the original image
+plt.subplot(2, 2, 4)
+
+for i, line in enumerate(lines):
+    points = transition_points[i]
+
+    # pass any dead lines
+    if len(points) == 0:
+        continue
+
+    plt.plot(*np.flip(points[0]), marker='o', color='red')
+    plt.plot(*np.flip(points[1]), marker='o', color='blue')
+
+plt.imshow(TEST_IMAGE)
+plt.title('Compared to the original image')
 
 plt.show()
 
-mask = np.array([0,0,0,0,1,1,1,1])
 
 
