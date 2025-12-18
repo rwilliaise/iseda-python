@@ -18,7 +18,7 @@ TEST_IMAGE = Image.open(args[0])
 TEST_IMAGE_WIDTH = TEST_IMAGE.width
 TEST_IMAGE_HEIGHT = TEST_IMAGE.height
 
-MEDIAN_FILTER_SIZE = 10
+MEDIAN_FILTER_SIZE = 5
 
 # turn that into an np array to process
 # since this is a RGB image, the array has the shape of NDArray[height, width, 3]
@@ -205,14 +205,67 @@ for i in range(-11, 12):
     end = find_edge_point(centroid + (i * offset), -wmax)
     lines.append(np.array([start, end]))
 
+# extending the lines plot 
 plt.subplot(2, 2, 1)
 
 # show the lines
-for line in lines:
-    plt.arrow(*np.flip(line[0]), *np.flip(line[1] - line[0]), color='gray')
+for i, line in enumerate(lines):
+    color = 'yellow' if i == int(len(lines) / 2) else 'gray'
+    plt.arrow(*np.flip(line[0]), *np.flip(line[1] - line[0]), color=color)
 
 plt.imshow(image_mat, cmap='gray')
 plt.title('Extending the lines')
+
+# get a bilinearly interpolated value for a point on the image
+def sample_bilinear(point):
+    floored_point = np.floor(point)
+    fy, fx = floored_point
+    iy = int(fy)
+    ix = int(fx)
+
+    if ix + 1 >= TEST_IMAGE_WIDTH or iy + 1 >= TEST_IMAGE_HEIGHT:
+        return 0
+
+    # coordinate relative to the pixel on the image
+    py, px = point - floored_point
+    
+    # top-left value
+    v0 = image_mat[iy][ix]
+    # top-right value
+    v1 = image_mat[iy][ix + 1]
+    # bottom-left value
+    v2 = image_mat[iy + 1][ix]
+    # bottom-right value
+    v3 = image_mat[iy + 1][ix + 1]
+    
+    # interpolate the value according to the pixel-relative coordinate
+    return (1 - py) * (v0 * (1 - px) + v1 * px) + py * (v2 * (1 - px) + v3 * px)
+    
+line_samples = []
+
+# sample the points along each line
+for line in lines:
+    # cut each line up based on its line
+    length = np.linalg.norm(line[1] - line[0])
+    count = int(length)
+
+    # generate a bunch of points on the line using the new count
+    points = np.linspace(line[0], line[1], int(count))
+
+    # now sample (using bilinear interpolation) using the points on the line
+    samples = np.array([sample_bilinear(point) for point in points])
+
+    # add that to the sample list
+    line_samples.append(samples)
+
+# sampling the image plot
+plt.subplot(2, 2, 2)
+
+samples = line_samples[int(len(line_samples) / 2)]
+plt.plot(samples, '.-')
+plt.xlabel('Position along middle line')
+plt.ylabel('Sampled pixel value along middle line')
+plt.title('Samples taken from the middle line')
 
 plt.show()
 
