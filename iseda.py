@@ -3,9 +3,12 @@
 from PIL import Image
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 import sys
+
 from scipy import ndimage
+from scipy.linalg import svd
 
 args = sys.argv[1:]
 
@@ -327,15 +330,12 @@ plt.title('Calculating the transition points')
 # Lay the found points over the original image
 plt.subplot(2, 2, 4)
 
-for i, line in enumerate(lines):
-    points = transition_points[i]
+transition_points = np.array(
+    [point for point in transition_points if point.size != 0]
+)
 
-    # pass any dead lines
-    if len(points) == 0:
-        continue
-
-    plt.plot(*np.flip(points[0]), marker='o', color='red')
-    plt.plot(*np.flip(points[1]), marker='o', color='blue')
+plt.plot(transition_points[:, 0, 1], transition_points[:, 0, 0], marker='x', color='red')
+plt.plot(transition_points[:, 1, 1], transition_points[:, 1, 0], marker='x', color='blue')
 
 plt.imshow(TEST_IMAGE)
 plt.title('Compared to the original image')
@@ -343,4 +343,83 @@ plt.title('Compared to the original image')
 plt.show()
 
 
+# Step 4: CIRCLE FITTING THE POINTS
+plt.figure('Circle fitting the points')
+
+def taubin_fit(coords):
+    x = coords[:, 0]
+    y = coords[:, 1]
+    centroid = np.array([x.mean(), y.mean()])
+    X = x - centroid[0]
+    Y = y - centroid[1]
+    Z = X * X + Y * Y
+    
+    Zmean = np.mean(Z)
+    Z0 = (Z - Zmean) / (2 * np.sqrt(Zmean))
+    ZXY = np.array([Z0, X, Y])
+    
+    _, _, V = svd(ZXY.transpose(), full_matrices=False)
+    V = V.transpose()
+    A = V[:, 2]
+    A[0] /= 2 * np.sqrt(Zmean)
+    A = np.hstack((A, -Zmean * A[0]))
+
+    if abs(A[0]) < 1e-8:
+        print('warn: curve too straight, failed to fit onto a circle')
+        return 0, 0, np.inf, np.inf
+    
+    c = -(A[1:3]).transpose() / A[0] / 2 + centroid
+    xc = c[0]
+    yc = c[1]
+    r = np.sqrt(A[1] * A[1] + A[2] * A[2] - 4 * A[0] * A[3]) / abs(A[0]) / 2
+
+    dx = x - xc
+    dy = y - yc
+    rmsd = np.sqrt(np.mean((np.sqrt(dx ** 2 + dy ** 2) - r) ** 2))
+    return xc, yc, r, rmsd
+
+red_points = transition_points[:, 0, :]
+blue_points = transition_points[:, 1, :]
+
+ax = plt.subplot(1, 3, 1)
+
+xc0, yc0, r0, rmsd0 = taubin_fit(red_points)
+print(('red points guessed radius: {}').format(r0))
+
+plt.imshow(TEST_IMAGE)
+img_xbounds = ax.get_xlim()
+img_ybounds = ax.get_ylim()
+plt.plot(red_points[:, 1], red_points[:, 0], marker='x', color='red')
+plt.plot(yc0, xc0, marker='x', color='yellow')
+ax.add_patch(patches.Rectangle((yc0-r0,xc0-r0), r0 * 2, r0 * 2, edgecolor='yellow', facecolor='none', lw=2))
+ax.add_patch(patches.Circle((yc0, xc0), r0, edgecolor='green', facecolor='none', lw=2))
+plt.title('Fitting the red points')
+ax.set_xlim(img_xbounds)
+ax.set_ylim(img_ybounds)
+
+ax = plt.subplot(1, 3, 2)
+
+xc1, yc1, r1, rmsd1 = taubin_fit(blue_points)
+print(('blue points guessed radius: {}').format(r1))
+
+plt.imshow(TEST_IMAGE)
+plt.plot(blue_points[:, 1], blue_points[:, 0], marker='x', color='blue')
+plt.plot(yc1, xc1, marker='x', color='yellow')
+ax.add_patch(patches.Rectangle((yc1-r1,xc1-r1), r1 * 2, r1 * 2, edgecolor='yellow', facecolor='none', lw=2))
+ax.add_patch(patches.Circle((yc1, xc1), r1, edgecolor='green', facecolor='none', lw=2))
+plt.title('Fitting the blue points')
+ax.set_xlim(img_xbounds)
+ax.set_ylim(img_ybounds)
+
+plt.subplot(1, 3, 3)
+
+chosen_points = red_points if rmsd0 < rmsd1 else blue_points
+
+plt.imshow(TEST_IMAGE)
+plt.plot(chosen_points[:, 1], chosen_points[:, 0], marker='x', color='yellow')
+plt.title('Choosing the best set of points')
+
+print('final rmsd of points: {}'.format(min(rmsd0, rmsd1)))
+
+plt.show()
 
