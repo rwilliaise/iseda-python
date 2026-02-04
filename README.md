@@ -29,9 +29,9 @@ A "point-file" is a `.json` file with the format of:
 ```jsonc
 {
     "image": {
-        "name": ... // name (including extension) of the image file
-        "width": ... // width of the image
-        "height": ... // height of the image
+        "name": ..., // name (including extension) of the image file
+        "width": ..., // width of the image
+        "height": ..., // height of the image
         "sha256": ... // sha256 digest of the image file
     },
     // list of points that are on the horizon of the celestial body in the image

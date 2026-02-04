@@ -226,7 +226,7 @@ def extract_points(image):
     blue_points = transition_points[:, 1, :]
     rmsd0 = taubin_fit(red_points)
     rmsd1 = taubin_fit(blue_points)
-    return red_points if rmsd0 > rmsd1[0] else blue_points
+    return red_points if rmsd0 > rmsd1 else blue_points
 
 if __name__ == '__main__':
     args = sys.argv[1:]
