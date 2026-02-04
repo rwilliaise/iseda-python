@@ -7,6 +7,8 @@ import matplotlib.patches as patches
 import numpy as np
 import sys
 
+import time
+
 from scipy import ndimage
 from scipy.linalg import svd
 
@@ -28,6 +30,7 @@ MEDIAN_FILTER_SIZE = 5
 image_mat = np.asarray(TEST_IMAGE)
 
 
+start_time = time.time()
 
 # STEP 1: PROCESS IMAGE
 plt.figure('Image processing steps')
@@ -72,7 +75,12 @@ plt.title('Thresholded binary image')
 
 plt.show()
 
+print(("delta t: {:.4f} s").format(time.time() - start_time))
 
+
+
+
+start_time = time.time()
 
 # STEP 2: CALCULATING INERTIAL PROPERTIES
 plt.figure('Calculating inertial properties')
@@ -118,6 +126,8 @@ wmin = wmin / np.linalg.norm(wmin)
 estimated_moon_radius = 2 * np.sqrt(Lmax/mass)
 estimated_minor_axis = 2 * np.sqrt(Lmin/mass)
 
+print(("delta t: {:.4f} s").format(time.time() - start_time))
+
 plt.subplot(1, 3, 2)
 
 # draw the rough minor axis
@@ -135,6 +145,8 @@ plt.arrow(
 )
 
 # also put the centroid point
+
+
 plt.plot(*np.flip(centroid), marker='o', color='green')
 
 plt.imshow(image_mat, cmap='gray')
@@ -165,6 +177,9 @@ plt.title('Lines to query')
 plt.show()
 
 
+
+
+start_time = time.time()
 
 # Step 3: PLACING TRANSITION POINTS 
 plt.figure('Placing transition points')
@@ -210,6 +225,8 @@ for i in range(-11, 12):
         continue
     lines.append(np.array([start, end]))
 
+print(("edge points: delta t: {:.4f} s").format(time.time() - start_time))
+
 # extending the lines plot 
 plt.subplot(2, 2, 1)
 
@@ -220,6 +237,8 @@ for i, line in enumerate(lines):
 
 plt.imshow(image_mat, cmap='gray')
 plt.title('Extending the lines')
+
+start_time = time.time()
 
 # get a bilinearly interpolated value for a point on the image
 def sample_bilinear(point):
@@ -308,6 +327,8 @@ for i, correlation in enumerate(correlations):
     points = np.array([p0, p1])
     transition_points.append(points)   
 
+print(("placing transition points: delta t: {:.4f} s").format(time.time() - start_time))
+
 # points associated with each line plot
 plt.subplot(2, 2, 3)
 
@@ -342,6 +363,9 @@ plt.title('Compared to the original image')
 
 plt.show()
 
+
+
+start_time = time.time()
 
 # Step 4: CIRCLE FITTING THE POINTS
 plt.figure('Circle fitting the points')
@@ -380,6 +404,8 @@ def taubin_fit(coords):
 
 red_points = transition_points[:, 0, :]
 blue_points = transition_points[:, 1, :]
+
+print(("fitting points: delta t: {:.4f} s").format(time.time() - start_time))
 
 ax = plt.subplot(1, 3, 1)
 

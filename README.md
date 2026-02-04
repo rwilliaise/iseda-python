@@ -16,10 +16,34 @@ source venv/bin/activate
 # Install required packages.
 pip install -r requirements.txt
 
-# Run the algorithm.
-python iseda.py
+# Run the algorithm on the moon sample image.
+python iseda.py moon.jpg
 ```
 
+### Points
+There is also a `label.py` script that allows generation of "point-files" from
+manually adjusted points from a GUI. This uses the ISEDA algorithm to give rough
+initial points for adjustment.
+
+A "point-file" is a `.json` file with the format of:
+```jsonc
+{
+    "image": {
+        "name": ... // name (including extension) of the image file
+        "width": ... // width of the image
+        "height": ... // height of the image
+        "sha256": ... // sha256 digest of the image file
+    },
+    // list of points that are on the horizon of the celestial body in the image
+    "target_points": [
+        [ x_0, y_0 ], // x and y of the first point
+        [ x_1, y_1 ], // x and y of the second point
+        ...
+    ]
+}
+```
+
+### NixOS
 There is a `shell.nix` for NixOS users. Be aware that this uses `zsh` as the
 runScript as that is what I use, and I haven't really bothered to make it work
 on other machines.
